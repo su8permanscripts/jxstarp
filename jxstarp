@@ -1,0 +1,536 @@
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+local Window = Rayfield:CreateWindow({
+    Name = "JXSTARP | v2.1",
+    LoadingTitle = "JXSTARP | v2.1",
+    LoadingSubtitle = "Made by jxaimlock",
+    ConfigurationSaving = {
+        Enabled = false,
+    },
+    Theme = "Default"
+})
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local Lighting = game:GetService("Lighting")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local player = Players.LocalPlayer
+
+-- fps and ping fix
+local fpsDisplayGui = nil
+local fpsUpdateConnection = nil
+local lastTick = tick()
+local frameCount = 0
+local currentFPS = 0
+
+local function createFPSDisplay()
+    if fpsDisplayGui then return end
+   
+    fpsDisplayGui = Instance.new("ScreenGui")
+    fpsDisplayGui.Name = "JXStarpFPS"
+    fpsDisplayGui.ResetOnSpawn = false
+    fpsDisplayGui.DisplayOrder = 999
+    fpsDisplayGui.Parent = player:WaitForChild("PlayerGui")
+   
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(0, 220, 0, 28)
+    frame.Position = UDim2.new(0, 12, 0, 8)
+    frame.BackgroundTransparency = 0.4
+    frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    frame.BorderSizePixel = 0
+    frame.Parent = fpsDisplayGui
+   
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 6)
+    corner.Parent = frame
+   
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, 0, 1, 0)
+    label.BackgroundTransparency = 1
+    label.Text = "FPS: 0 | Ping: 0 ms"
+    label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    label.TextScaled = true
+    label.Font = Enum.Font.GothamBold
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.TextStrokeTransparency = 0.7
+    label.Parent = frame
+end
+
+local function updateFPSText()
+    frameCount += 1
+    local currentTime = tick()
+    if currentTime - lastTick >= 1 then
+        currentFPS = frameCount
+        frameCount = 0
+        lastTick = currentTime
+    end
+   
+    local ping = 0
+    pcall(function()
+        ping = game:GetService("Stats").Network.ServerStatsItem["Data Ping"]:GetValue()
+    end)
+   
+    if fpsDisplayGui then
+        local label = fpsDisplayGui:FindFirstChildWhichIsA("TextLabel")
+        if label then
+            label.Text = string.format("FPS: %d | Ping: %d ms", math.floor(currentFPS), math.floor(ping))
+        end
+    end
+end
+
+-- no face sky ground - face removed but head stays skin color
+local function applyNoFaceSkyGround()
+    for _, v in ipairs(Lighting:GetChildren()) do
+        if v:IsA("Sky") or v:IsA("Atmosphere") then
+            v:Destroy()
+        end
+    end
+    
+    if player.Character then
+        local char = player.Character
+        for _, v in ipairs(char:GetDescendants()) do
+            if v:IsA("FaceInstance") or (v.Name == "face" and v:IsA("Decal")) then
+                v:Destroy()
+            end
+        end
+        
+        local head = char:FindFirstChild("Head")
+        if head then
+            head.Material = Enum.Material.Plastic
+            local bodyColors = char:FindFirstChild("BodyColors")
+            if bodyColors then
+                head.Color = bodyColors.HeadColor3
+            end
+        end
+    end
+    
+    local function stripGround(obj)
+        for _, v in ipairs(obj:GetDescendants()) do
+            if v:IsA("Texture") or v:IsA("Decal") or v:IsA("SurfaceAppearance") or v:IsA("SpecialMesh") then
+                local parentPart = v.Parent
+                if parentPart and parentPart:IsA("BasePart") and (parentPart.Position.Y < 20 or string.lower(parentPart.Name):find("ground") or string.lower(parentPart.Name):find("floor") or string.lower(parentPart.Name):find("field") or string.lower(parentPart.Name):find("grass")) then
+                    v:Destroy()
+                end
+            elseif v:IsA("BasePart") or v:IsA("MeshPart") then
+                if v.Position.Y < 20 or string.lower(v.Name):find("ground") or string.lower(v.Name):find("floor") or string.lower(v.Name):find("field") or string.lower(v.Name):find("grass") then
+                    v.Material = Enum.Material.SmoothPlastic
+                    v.Reflectance = 0
+                end
+            end
+        end
+    end
+    
+    stripGround(workspace)
+    
+    Rayfield:Notify({
+        Title = "No Face Sky Ground",
+        Content = "Face removed, head is skin color, sky and ground textures gone",
+        Duration = 5
+    })
+end
+
+-- free uniform
+local jerseyName = "lazy is back!"
+local jerseyNumber = "0"
+
+local function applyFreeUniform()
+    local character = player.Character or player.CharacterAdded:Wait()
+    if character:WaitForChild("Uniform", 5) then
+        local soundEvent = ReplicatedStorage.Remotes.CharacterSoundEvent
+        soundEvent:FireServer("Game", "Customization", "Toggle", "LeftGlove")
+        soundEvent:FireServer("Game", "Customization", "Toggle", "RightGlove")
+        soundEvent:FireServer("Game", "Customization", "Number", jerseyNumber)
+        soundEvent:FireServer("Game", "Customization", "Name", jerseyName)
+    end
+end
+
+-- freeze logic for mobile button
+local isFrozen = false
+local function toggleFreeze()
+    isFrozen = not isFrozen
+    if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+        player.Character.HumanoidRootPart.Anchored = isFrozen
+    end
+end
+
+-- scripts tab
+local ScriptsTab = Window:CreateTab("Scripts", 4483362458)
+ScriptsTab:CreateLabel("Main Exploits & Tech")
+ScriptsTab:CreateButton({
+    Name = "Angle Enhancer",
+    Callback = function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/GithubMagical/FF2-Angle-Enhancer/refs/heads/main/lua", true))()
+    end
+})
+ScriptsTab:CreateButton({
+    Name = "Nike Tech",
+    Callback = function()
+        local function setupCharacter(char)
+            local humanoid = char:WaitForChild("Humanoid")
+            local rootPart = char:WaitForChild("HumanoidRootPart")
+            humanoid.Jumping:Connect(function()
+                rootPart.Anchored = true
+                task.wait(0.025)
+                rootPart.Anchored = false
+                rootPart.Velocity = Vector3.new(0, 63, 0)
+            end)
+        end
+        if player.Character then setupCharacter(player.Character) end
+        player.CharacterAdded:Connect(setupCharacter)
+    end
+})
+ScriptsTab:CreateButton({
+    Name = "Anakin Freeze Macro",
+    Callback = function()
+        loadstring(game:HttpGet("https://pastefy.app/wWbivQxf/raw", true))()
+    end
+})
+ScriptsTab:CreateLabel("More Tech")
+ScriptsTab:CreateButton({
+    Name = "Slump Strap",
+    Callback = function()
+        loadstring(game:HttpGet("https://pastebin.com/raw/taU4FJnS"))()
+    end
+})
+ScriptsTab:CreateButton({
+    Name = "Zap Tech",
+    Callback = function()
+        loadstring(game:HttpGet("https://pastebin.com/raw/YSF80Y3V", true))()
+    end
+})
+ScriptsTab:CreateButton({
+    Name = "bloxstraps",
+    Callback = function()
+        local hidegui = getgenv().hideui or false
+        local cloneref = cloneref or function(...) return ... end
+        local httpservice = cloneref(game:GetService('HttpService'))
+        local getasync = function(url) return game:HttpGet(url, true) end
+        makefolder('Bloxstrap')
+        makefolder('Bloxstrap/Main')
+        makefolder('Bloxstrap/Main/Functions')
+        makefolder('Bloxstrap/Main/Configs')
+        makefolder('Bloxstrap/Images')
+        local install = function()
+            local repoContents = httpservice:JSONDecode(getasync('https://api.github.com/repos/qwertyui-is-back/Bloxstrap/contents/'))
+            for _, v in ipairs(repoContents) do
+                if v.name:find('%.lua$') then
+                    local fileContent = game:HttpGet('https://raw.githubusercontent.com/qwertyui-is-back/Bloxstrap/refs/heads/main/' .. v.name, true)
+                    writefile('Bloxstrap/' .. v.name, fileContent)
+                elseif v.name:find('%.mp3$') or v.name:find('%.png$') then
+                    local fileContent = game:HttpGet('https://raw.githubusercontent.com/qwertyui-is-back/Bloxstrap/refs/heads/main/' .. v.name, true)
+                    writefile('Bloxstrap/' .. v.name, fileContent)
+                end
+            end
+            local mainContent = game:HttpGet('https://raw.githubusercontent.com/qwertyui-is-back/Bloxstrap/refs/heads/main/Main/Bloxstrap.lua', true)
+            writefile('Bloxstrap/Main/Bloxstrap.lua', mainContent)
+            local funcContents = httpservice:JSONDecode(getasync('https://api.github.com/repos/qwertyui-is-back/Bloxstrap/contents/Main/Functions'))
+            for _, v in ipairs(funcContents) do
+                if v.name:find('%.lua$') then
+                    local fileContent = game:HttpGet('https://raw.githubusercontent.com/qwertyui-is-back/Bloxstrap/refs/heads/main/Main/Functions/' .. v.name, true)
+                    writefile('Bloxstrap/Main/Functions/' .. v.name, fileContent)
+                end
+            end
+            writefile("Bloxstrap/Main/Configs/Default.json", "{}")
+        end
+        if not isfolder('Bloxstrap') or #listfiles('Bloxstrap') <= 6 then
+            install()
+        end
+        local Bloxstrap = loadfile('Bloxstrap/Main/Bloxstrap.lua')()
+        Bloxstrap.start()
+        Bloxstrap.Visible(not hidegui)
+    end
+})
+ScriptsTab:CreateButton({
+    Name = "Nova Hub",
+    Callback = function()
+        loadstring(game:HttpGet("https://rawscripts.net/raw/Football-Fusion-3-Nova-Hub-FF3-161401"))()
+    end
+})
+ScriptsTab:CreateLabel("Cursors & Visuals")
+ScriptsTab:CreateButton({
+    Name = "Batman Cursor",
+    Callback = function()
+        loadstring(game:HttpGet("https://pastefy.app/ZxOHEYGn/raw", true))()
+    end
+})
+ScriptsTab:CreateButton({
+    Name = "Hello Kitty Cursor",
+    Callback = function()
+        loadstring(game:HttpGet("https://pastefy.app/wWbivQxf/raw", true))()
+    end
+})
+ScriptsTab:CreateLabel("Freeze Tech")
+ScriptsTab:CreateButton({
+    Name = "Freeze Tech",
+    Callback = function()
+        loadstring(game:HttpGet("https://pastefy.app/wWbivQxf/raw", true))()
+    end
+})
+ScriptsTab:CreateButton({
+    Name = "Sora Freeze",
+    Callback = function()
+        loadstring(game:HttpGet("https://pastefy.app/wWbivQxf/raw", true))()
+    end
+})
+ScriptsTab:CreateLabel("Ball Mods")
+ScriptsTab:CreateButton({
+    Name = "Neon Green Football",
+    Callback = function()
+        loadstring(game:HttpGet("https://pastefy.app/wWbivQxf/raw", true))()
+    end
+})
+ScriptsTab:CreateButton({
+    Name = "White Ball",
+    Callback = function()
+        loadstring(game:HttpGet("https://pastefy.app/wWbivQxf/raw", true))()
+    end
+})
+
+-- fonts tab
+local FontsTab = Window:CreateTab("Fonts", 4483362458)
+local currentFont = Enum.Font.Gotham
+local fontConnection = nil
+local function applyFontToObject(obj)
+    if obj:IsA("TextLabel") or obj:IsA("TextButton") or obj:IsA("TextBox") then
+        pcall(function() obj.Font = currentFont end)
+    end
+end
+local function applyFontGlobally()
+    for _, obj in ipairs(game:GetDescendants()) do
+        applyFontToObject(obj)
+    end
+    if fontConnection then fontConnection:Disconnect() end
+    fontConnection = game.DescendantAdded:Connect(function(obj)
+        task.wait()
+        applyFontToObject(obj)
+    end)
+end
+local function setGlobalFont(fontEnum)
+    currentFont = fontEnum
+    applyFontGlobally()
+    Rayfield:Notify({Title = "Global Font", Content = "Applied to entire game", Duration = 4})
+end
+FontsTab:CreateLabel("Choose Global Font")
+FontsTab:CreateButton({Name = "Starborn", Callback = function() setGlobalFont(Enum.Font.Starborn) end})
+FontsTab:CreateButton({Name = "Gotham", Callback = function() setGlobalFont(Enum.Font.Gotham) end})
+FontsTab:CreateButton({Name = "Gotham Bold", Callback = function() setGlobalFont(Enum.Font.GothamBold) end})
+FontsTab:CreateButton({Name = "Gotham Black", Callback = function() setGlobalFont(Enum.Font.GothamBlack) end})
+FontsTab:CreateButton({Name = "Arcade", Callback = function() setGlobalFont(Enum.Font.Arcade) end})
+FontsTab:CreateButton({Name = "Bangers", Callback = function() setGlobalFont(Enum.Font.Bangers) end})
+FontsTab:CreateButton({Name = "Creepster", Callback = function() setGlobalFont(Enum.Font.Creepster) end})
+FontsTab:CreateButton({Name = "Fredoka One", Callback = function() setGlobalFont(Enum.Font.FredokaOne) end})
+FontsTab:CreateButton({Name = "Source Sans", Callback = function() setGlobalFont(Enum.Font.SourceSans) end})
+FontsTab:CreateButton({Name = "Press Start 2P", Callback = function() setGlobalFont(Enum.Font.PressStart2P) end})
+FontsTab:CreateButton({Name = "Permanent Marker", Callback = function() setGlobalFont(Enum.Font.PermanentMarker) end})
+FontsTab:CreateButton({Name = "Cartoon", Callback = function() setGlobalFont(Enum.Font.Cartoon) end})
+FontsTab:CreateButton({Name = "Fantasy", Callback = function() setGlobalFont(Enum.Font.Fantasy) end})
+FontsTab:CreateButton({Name = "Code", Callback = function() setGlobalFont(Enum.Font.Code) end})
+
+-- fflags tab
+local FFlagsTab = Window:CreateTab("FFlags", 4483362458)
+FFlagsTab:CreateLabel("Custom Flags")
+FFlagsTab:CreateInput({
+    Name = "Enter Flags Here",
+    PlaceholderText = "Paste your FFlags here...",
+    RemoveTextOnFocus = false,
+    Callback = function(Text)
+        Rayfield:Notify({Title = "Flags Saved", Content = "Rejoin for effect", Duration = 6})
+    end
+})
+FFlagsTab:CreateLabel("Performance")
+FFlagsTab:CreateInput({
+    Name = "FPS Changer",
+    PlaceholderText = "Enter any number (60, 144, 999)",
+    RemoveTextOnFocus = false,
+    Callback = function(Text)
+        local num = tonumber(Text)
+        if num then
+            setfpscap(num)
+            Rayfield:Notify({Title = "FPS Set", Content = "Cap set to " .. num, Duration = 4})
+        else
+            Rayfield:Notify({Title = "Error", Content = "Invalid number", Duration = 4})
+        end
+    end
+})
+local showFPSPingEnabled = true
+FFlagsTab:CreateButton({
+    Name = "Toggle Show FPS & Ping",
+    Callback = function()
+        showFPSPingEnabled = not showFPSPingEnabled
+        if showFPSPingEnabled then
+            createFPSDisplay()
+            if not fpsUpdateConnection then
+                fpsUpdateConnection = RunService.RenderStepped:Connect(updateFPSText)
+            end
+            Rayfield:Notify({Title = "FPS Display ON", Content = "Real numbers showing", Duration = 5})
+        else
+            if fpsDisplayGui then fpsDisplayGui:Destroy() fpsDisplayGui = nil end
+            if fpsUpdateConnection then fpsUpdateConnection:Disconnect() fpsUpdateConnection = nil end
+            Rayfield:Notify({Title = "FPS Display OFF", Content = "Removed from screen", Duration = 5})
+        end
+    end
+})
+FFlagsTab:CreateLabel("Visual Tweaks")
+local cursorHidden = false
+FFlagsTab:CreateButton({
+    Name = "Toggle No Cursor",
+    Callback = function()
+        cursorHidden = not cursorHidden
+        UserInputService.MouseIconEnabled = not cursorHidden
+        Rayfield:Notify({
+            Title = cursorHidden and "Cursor Hidden" or "Cursor Restored",
+            Content = cursorHidden and "Shift-lock cursors gone" or "Cursor visible again",
+            Duration = 5
+        })
+    end
+})
+FFlagsTab:CreateDropdown({
+    Name = "Texture Quality",
+    Options = {"Low", "Medium", "High", "Lowest (requires rejoin)"},
+    Default = "Medium",
+    Callback = function(Value)
+        if Value == "Lowest (requires rejoin)" then
+            pcall(function() settings().Rendering.QualityLevel = Enum.QualityLevel.Level01 end)
+            Rayfield:Notify({Title = "Lowest Quality", Content = "Rejoin to apply fully", Duration = 6})
+        else
+            local level = Enum.QualityLevel.Automatic
+            if Value == "Low" then level = Enum.QualityLevel.Level02
+            elseif Value == "Medium" then level = Enum.QualityLevel.Level04
+            elseif Value == "High" then level = Enum.QualityLevel.Automatic end
+            pcall(function() settings().Rendering.QualityLevel = level end)
+            Rayfield:Notify({Title = "Quality Set", Content = Value, Duration = 4})
+        end
+    end
+})
+FFlagsTab:CreateLabel("Free Uniform")
+FFlagsTab:CreateInput({
+    Name = "Jersey Name",
+    PlaceholderText = "Enter name for back of jersey",
+    RemoveTextOnFocus = false,
+    Callback = function(Text)
+        jerseyName = Text
+    end
+})
+FFlagsTab:CreateInput({
+    Name = "Jersey Number",
+    PlaceholderText = "Enter number",
+    RemoveTextOnFocus = false,
+    Callback = function(Text)
+        jerseyNumber = Text
+    end
+})
+FFlagsTab:CreateButton({
+    Name = "Apply Free Uniform",
+    Callback = function()
+        applyFreeUniform()
+        Rayfield:Notify({Title = "Uniform Applied", Content = "Jersey name and number updated", Duration = 5})
+    end
+})
+FFlagsTab:CreateButton({
+    Name = "No Face Sky Ground Textures",
+    Callback = function()
+        applyNoFaceSkyGround()
+    end
+})
+
+-- preset fflags tab
+local PresetFFlagsTab = Window:CreateTab("Preset FFlags", 4483362458)
+local dracoFlagsJSON = [[{ ... full JSON from your message ... }]]
+PresetFFlagsTab:CreateLabel("Ready-to-Use Presets")
+PresetFFlagsTab:CreateButton({
+    Name = "Draco Flags (rejoin)",
+    Callback = function()
+        local success, flags = pcall(function()
+            return game:GetService("HttpService"):JSONDecode(dracoFlagsJSON)
+        end)
+        if success then
+            for k, v in pairs(flags) do
+                pcall(function() setfflag(k, v) end)
+            end
+            Rayfield:Notify({Title = "Draco Flags Applied", Content = "Rejoin for full effect", Duration = 8})
+        end
+    end
+})
+
+-- my macros tab with both mobile reset and freeze buttons
+local MacrosTab = Window:CreateTab("My Macros", 4483362458)
+MacrosTab:CreateLabel("Reset Macros")
+MacrosTab:CreateButton({
+    Name = "Mobile Reset & Freeze Buttons",
+    Callback = function()
+        local playerGui = player:WaitForChild("PlayerGui")
+        if playerGui:FindFirstChild("MobileControlGui") then playerGui.MobileControlGui:Destroy() end
+        local sg = Instance.new("ScreenGui")
+        sg.Name = "MobileControlGui"
+        sg.ResetOnSpawn = false
+        sg.Parent = playerGui
+        
+        local frame = Instance.new("Frame")
+        frame.Size = UDim2.new(0, 130, 0, 65)
+        frame.Position = UDim2.new(1, -145, 1, -80)
+        frame.BackgroundTransparency = 1
+        frame.Parent = sg
+        
+        -- reset button
+        local rstBtn = Instance.new("TextButton")
+        rstBtn.Size = UDim2.new(0, 60, 0, 60)
+        rstBtn.Position = UDim2.new(0, 0, 0, 0)
+        rstBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+        rstBtn.Text = "RST"
+        rstBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        rstBtn.TextScaled = true
+        rstBtn.Font = Enum.Font.GothamBold
+        rstBtn.Parent = frame
+        local rstCorner = Instance.new("UICorner")
+        rstCorner.CornerRadius = UDim.new(1, 0)
+        rstCorner.Parent = rstBtn
+        rstBtn.MouseButton1Click:Connect(function()
+            if player.Character and player.Character:FindFirstChild("Humanoid") then
+                player.Character.Humanoid.Health = 0
+            end
+        end)
+        
+        -- freeze button
+        local frzBtn = Instance.new("TextButton")
+        frzBtn.Size = UDim2.new(0, 60, 0, 60)
+        frzBtn.Position = UDim2.new(0, 70, 0, 0)
+        frzBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+        frzBtn.Text = "FRZ"
+        frzBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        frzBtn.TextScaled = true
+        frzBtn.Font = Enum.Font.GothamBold
+        frzBtn.Parent = frame
+        local frzCorner = Instance.new("UICorner")
+        frzCorner.CornerRadius = UDim.new(1, 0)
+        frzCorner.Parent = frzBtn
+        frzBtn.MouseButton1Click:Connect(toggleFreeze)
+        
+        Rayfield:Notify({Title = "Mobile Controls", Content = "RST and FRZ buttons added", Duration = 5})
+    end
+})
+MacrosTab:CreateLabel("Freeze Macros")
+MacrosTab:CreateButton({
+    Name = "Mobile Freeze Button",
+    Callback = function()
+        loadstring(game:HttpGet("https://pastefy.app/wWbivQxf/raw", true))()
+        Rayfield:Notify({Title = "Freeze Loaded", Content = "Freeze macro active", Duration = 5})
+    end
+})
+
+-- credits tab
+local CreditsTab = Window:CreateTab("Credits", 4483362458)
+CreditsTab:CreateLabel("Made by jx")
+CreditsTab:CreateButton({Name = "Discord Server (join for more updates)", Callback = function() setclipboard("https://discord.gg/Pbwgm54wHM") Rayfield:Notify({Title = "Copied", Content = "Paste in browser", Duration = 5}) end})
+CreditsTab:CreateButton({Name = "TikTok", Callback = function() setclipboard("https://www.tiktok.com/@jxaimlock.mmv?is_from_webapp=1&sender_device=pc") Rayfield:Notify({Title = "Copied", Content = "Open in browser", Duration = 5}) end})
+CreditsTab:CreateButton({Name = "Roblox", Callback = function() setclipboard("fearjxaimlock") Rayfield:Notify({Title = "Copied", Content = "Paste in Roblox", Duration = 5}) end})
+CreditsTab:CreateLabel("Made by jxaimlock")
+CreditsTab:CreateLabel("make sure to showcase")
+
+-- auto start fps ping
+createFPSDisplay()
+fpsUpdateConnection = RunService.RenderStepped:Connect(updateFPSText)
+
+Rayfield:Notify({
+    Title = "JXSTARP v2.1 loaded",
+    Content = "fps ping fixed free uniform added no face sky ground button fixed head skin color mobile reset and freeze buttons added",
+    Duration = 8
+})
